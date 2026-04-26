@@ -25,5 +25,5 @@ Here is some things that need to be done before I am satified:
         - Add ability to collapse code into a for loop
         - Add ability for repeated code to be turned into a function
 
-### Credits
+## Credits
 - Made by Nicholas Fraidakis in 2026 :D
