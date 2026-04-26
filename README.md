@@ -5,7 +5,7 @@ It works by internally solving a Karel problem and recording the movements and o
 
 Also the outputed code relies on the functions from sumac-lib.py (which contains some helper functions to move Karel)
 
-### Status
+## Status
 Right now sumac-gen is in a functional but very early and prototype-like state, so the codebase is pretty messy right now and needs to be cleaned up! 
 Also gotta rename a couple internal names because this project because this started out as joke project (still somewhat is), but is now meant to be a polished (eventually) and usuable tool. Also now it is open source too on my github account that is for my more serious projects I have to make it a little more professional :)
 
