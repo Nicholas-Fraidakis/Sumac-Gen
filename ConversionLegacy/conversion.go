@@ -149,7 +149,7 @@ type FoundInteractable struct {
 	Coordinate grid2dmap.Coordinate
 	Type       InteractableType
 
-	Argument uint32
+	Argument int
 }
 
 type CommonMapInfo struct {
@@ -175,20 +175,19 @@ type SnapshotMapInfo struct {
 // 0b00010000000000000000000000000000 Ball Flag
 // 0b00001000000000000000000000000000 Paint Flag
 
-// Updated tiles flags
-
-type TileFlag grid2dmap.Grid2DMapElement
-
+// Common Tiles
 const (
-	POSITION_FLAG = TileFlag(0x80000000 >> iota)
-	WALL_FLAG
-	BALL_FLAG
-	PAINT_FLAG
+	WALL = grid2dmap.Grid2DMapElement(1)
+)
 
-	START_INTERACTABLE_FLAG = WALL_FLAG
-	LAST_INTERACTABLE_FLAG  = PAINT_FLAG
-
-	INTERACTABLE_FLAGS = BALL_FLAG | PAINT_FLAG
+// Updated tiles flags
+const (
+	START_POSITION_FLAG = grid2dmap.Grid2DMapElement(0x80000000)
+	FINAl_POSITION_FLAG = grid2dmap.Grid2DMapElement(0x40000000)
+	WALL_FLAG           = grid2dmap.Grid2DMapElement(0x20000000)
+	BALL_FLAG           = grid2dmap.Grid2DMapElement(0x10000000)
+	PAINT_FLAG          = grid2dmap.Grid2DMapElement(0x08000000)
+	INTERACTABLE_FLAGS  = BALL_FLAG | PAINT_FLAG
 )
 
 // Updated tile masks and offsets
@@ -203,67 +202,45 @@ const (
 	PAINT_ARG_OFFSET = grid2dmap.Grid2DMapElement(7)
 )
 
+// Legacy Tiles
+const (
+	START_POSITION = grid2dmap.Grid2DMapElement(4*iota + 20)
+	END_POSITION
+	END_OF_COMMON_TILES
+)
+
+// Max quest (interactable and objective) amount
+const MAX_QUEST_AMOUNT = 15
+
+// Tiles for interactables on snapshot maps
+const (
+	INTERACTABLE_PLACED_BALLS = grid2dmap.Grid2DMapElement(MAX_QUEST_AMOUNT*iota + END_OF_COMMON_TILES)
+	END_OF_INTERACTABLES
+
+	START_OF_INTERACTABLES = INTERACTABLE_PLACED_BALLS
+)
+
 type InteractableType uint32
 
 const (
 	NO_OBJECT = InteractableType(iota)
 	BALL
-	PAINT
 )
 
-func InteractableTypeToFlag(interactable_type InteractableType) TileFlag {
-	switch interactable_type {
-	case BALL:
-		return BALL_FLAG
-	case PAINT:
-		return PAINT_FLAG
+func InteractableTileToFound(x, y int, tile grid2dmap.Grid2DMapElement) FoundInteractable {
+	var found_interactable = FoundInteractable{
+		Coordinate: grid2dmap.Coordinate{X: x, Y: y},
 	}
 
-	return 0
-}
+	found_interactable.Type = InteractableType(int(tile-START_OF_INTERACTABLES)/MAX_QUEST_AMOUNT) + 1
+	found_interactable.Argument = int(tile-START_OF_INTERACTABLES) % MAX_QUEST_AMOUNT
 
-func GetInteractableTileTypes(tile grid2dmap.Grid2DMapElement) []InteractableType {
-	var found_types = make([]InteractableType, 0)
-	current_mask := START_INTERACTABLE_FLAG
-
-	for i := 0; ; i++ {
-		if (TileFlag(tile) & current_mask) != 0 {
-			found_types = append(found_types, InteractableType(i))
-		}
-		if current_mask == LAST_INTERACTABLE_FLAG {
-			break
-		}
-		current_mask >>= 1
-	}
-	return found_types
-}
-
-func GetTileArguments(tile grid2dmap.Grid2DMapElement, tile_flag TileFlag) uint32 {
-	switch tile_flag {
-	case BALL_FLAG:
-		return uint32((tile & BALL_ARG_MASK) >> BALL_ARG_OFFSET)
-	case START_INTERACTABLE_FLAG:
-		fallthrough
-	case POSITION_FLAG:
-		return uint32((tile & ROTATION_ARG_MASK) >> ROTATION_ARG_OFFSET)
-	case PAINT_FLAG:
-		return uint32((tile & PAINT_ARG_MASK) >> PAINT_ARG_OFFSET)
-	}
-	return 0
-}
-
-func InteractableTileToFound(x, y int, tile grid2dmap.Grid2DMapElement) []FoundInteractable {
-	var found_types = GetInteractableTileTypes(tile)
-	var found_interactables []FoundInteractable = make([]FoundInteractable, len(found_types))
-	for i := range found_interactables {
-		found_interactables[i] = FoundInteractable{
-			Coordinate: grid2dmap.Coordinate{X: x, Y: y},
-			Type:       found_types[i],
-			Argument:   GetTileArguments(tile, InteractableTypeToFlag(found_types[i])),
-		}
+	if tile < START_OF_INTERACTABLES || tile > END_OF_INTERACTABLES {
+		found_interactable.Type = NO_OBJECT
+		found_interactable.Argument = 0
 	}
 
-	return found_interactables
+	return found_interactable
 }
 
 func GetCommonMapInfo(common_map grid2dmap.Grid2DMap) CommonMapInfo {
@@ -273,7 +250,7 @@ func GetCommonMapInfo(common_map grid2dmap.Grid2DMap) CommonMapInfo {
 			var checked_tile grid2dmap.Grid2DMapElement = common_map.Get(x, y)
 
 			// Looking for jim_bob positioning
-			if checked_tile&grid2dmap.Grid2DMapElement(POSITION_FLAG) != 0 {
+			if checked_tile >= START_POSITION && checked_tile < END_POSITION+4 {
 				if map_info.Karel_tile != grid2dmap.EMPTY {
 					panic("Woah there, there are multiple jim bob positions")
 				}
@@ -292,15 +269,12 @@ func GetSnapshotMapInfo(snapshot_map grid2dmap.Grid2DMap) SnapshotMapInfo {
 		for y := range snapshot_map.Height() {
 			var checked_tile grid2dmap.Grid2DMapElement = snapshot_map.Get(x, y)
 
-			if (checked_tile & grid2dmap.Grid2DMapElement(INTERACTABLE_FLAGS)) != 0 {
-				interactables := InteractableTileToFound(x, y, checked_tile)
+			if checked_tile >= START_OF_INTERACTABLES && checked_tile < END_OF_INTERACTABLES {
+				map_info.Found_interactables = append(
+					map_info.Found_interactables,
+					InteractableTileToFound(x, y, checked_tile),
+				)
 
-				for i := range interactables {
-					map_info.Found_interactables = append(
-						map_info.Found_interactables,
-						interactables[i],
-					)
-				}
 			}
 		}
 	}
@@ -319,7 +293,7 @@ func GetObjectiveSpecs(start, final grid2dmap.Grid2DMap) (core_map_geometry grid
 
 	for x := range core_map_geometry.Width() {
 		for y := range core_map_geometry.Height() {
-			if core_map_geometry.Get(x, y)&grid2dmap.Grid2DMapElement(WALL_FLAG) == 0 {
+			if core_map_geometry.Get(x, y) >= END_OF_COMMON_TILES {
 				core_map_geometry.Set(x, y, grid2dmap.EMPTY)
 			}
 		}
@@ -389,76 +363,29 @@ func GetObjectiveSpecs(start, final grid2dmap.Grid2DMap) (core_map_geometry grid
 		objective_specs[i].Objectives = make([]Objective, 1)
 		objective_specs[i].Objectives[0].Type = NO_OBJECTIVE
 
-		// Gets all interactables part of the tile
-		var interactables_start []FoundInteractable = InteractableTileToFound(
+		// Comparing the 2 interactables
+		var interactable_start FoundInteractable = InteractableTileToFound(
 			interactable_coord.X, interactable_coord.Y,
 			start.Get(interactable_coord.X, interactable_coord.Y),
 		)
-		var interactables_final []FoundInteractable = InteractableTileToFound(
+		var interactable_final FoundInteractable = InteractableTileToFound(
 			interactable_coord.X, interactable_coord.Y,
 			final.Get(interactable_coord.X, interactable_coord.Y),
 		)
 
-		// Gets all the interactable types to ready for comparison
-		var all_interactable_types = make([]InteractableType, 0)
+		// Handles ball case
+		if interactable_start.Type == BALL || interactable_final.Type == BALL {
+			amount_difference := interactable_final.Argument - interactable_start.Argument
 
-		for _, interactable := range interactables_start {
-			if !slices.Contains(all_interactable_types, interactable.Type) {
-				all_interactable_types = append(all_interactable_types, interactable.Type)
-			}
-		}
-
-		for _, interactable := range interactables_final {
-			if !slices.Contains(all_interactable_types, interactable.Type) {
-				all_interactable_types = append(all_interactable_types, interactable.Type)
-			}
-		}
-
-		// Compares each interactable
-		for _, interactable_type := range all_interactable_types {
-			// Gets the two interactables to compare
-			var interactable_1 = FoundInteractable{
-				Coordinate: interactable_coord,
-				Type:       interactable_type,
+			if utils.AbsInt(amount_difference) > utils.AbsInt(MAX_QUEST_AMOUNT) {
+				panic("Difference exceeds MAX_QUEST_AMOUNT")
 			}
 
-			for _, potential_interactable := range interactables_start {
-				if potential_interactable.Type != interactable_type {
-					continue
-				}
-				interactable_1.Argument = potential_interactable.Argument
+			if amount_difference < 0 {
+				objective_specs[i].Objectives = append(objective_specs[i].Objectives, Objective{Type: EAT_BALL, Argument: utils.AbsInt(amount_difference)})
+			} else if amount_difference > 0 {
+				objective_specs[i].Objectives = append(objective_specs[i].Objectives, Objective{Type: DROP_BALL, Argument: utils.AbsInt(amount_difference)})
 			}
-
-			var interactable_2 = FoundInteractable{
-				Coordinate: interactable_coord,
-				Type:       interactable_type,
-			}
-
-			for _, potential_interactable := range interactables_final {
-				if potential_interactable.Type != interactable_type {
-					continue
-				}
-				interactable_2.Argument = potential_interactable.Argument
-			}
-
-			switch interactable_type {
-			case BALL:
-				amount_difference := int(interactable_2.Argument - interactable_1.Argument)
-
-				if amount_difference < 0 {
-					objective_specs[i].Objectives = append(
-						objective_specs[i].Objectives,
-						Objective{Type: EAT_BALL, Argument: utils.AbsInt(amount_difference)},
-					)
-
-				} else if amount_difference > 0 {
-					objective_specs[i].Objectives = append(
-						objective_specs[i].Objectives,
-						Objective{Type: DROP_BALL, Argument: utils.AbsInt(amount_difference)},
-					)
-				}
-			}
-
 		}
 
 	}

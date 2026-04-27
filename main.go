@@ -10,23 +10,25 @@ import (
 func main() {
 	start_map := grid2dmap.NewFromSlice(
 		[][]grid2dmap.Grid2DMapElement{
-			{1, 1, 1, conversion.INTERACTABLE_PLACED_BALLS + 5, 0, 0},
-			{0, 0, 1, 0, 1, 0},
-			{conversion.START_POSITION, 0, 0, 0, 0, 0},
-			{0, 1, 1, 1, 0, 0},
-			{1, conversion.INTERACTABLE_PLACED_BALLS + 3, 0, 0, 1, 0},
-			{1, 0, 1, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
+			{0, 0, grid2dmap.Grid2DMapElement(conversion.BALL_FLAG | (4 << conversion.BALL_ARG_OFFSET)), 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
+			{grid2dmap.Grid2DMapElement(conversion.POSITION_FLAG), 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
 		},
 	)
 
 	final_map := grid2dmap.NewFromSlice(
 		[][]grid2dmap.Grid2DMapElement{
-			{1, 1, 1, conversion.INTERACTABLE_PLACED_BALLS + 10, 0, 0},
-			{0, 0, 1, 0, 1, 0},
-			{0, 0, 0, 0, 0, 0},
-			{0, 1, 1, 1, 0, 0},
-			{1, conversion.INTERACTABLE_PLACED_BALLS + 6, 0, 0, 1, 0},
-			{1, 0, 1, 0, 0, conversion.END_POSITION},
+			{0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
+			{0, 0, grid2dmap.Grid2DMapElement(conversion.BALL_FLAG | (8 << conversion.BALL_ARG_OFFSET)), 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
+			{grid2dmap.Grid2DMapElement(conversion.POSITION_FLAG) | grid2dmap.Grid2DMapElement(conversion.BALL_FLAG|(8<<conversion.BALL_ARG_OFFSET)), 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0},
 		},
 	)
 
