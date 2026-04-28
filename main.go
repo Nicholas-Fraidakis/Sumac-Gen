@@ -11,7 +11,7 @@ func main() {
 	start_map := grid2dmap.NewFromSlice(
 		[][]grid2dmap.Grid2DMapElement{
 			{0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0},
+			{0, grid2dmap.Grid2DMapElement(conversion.PAINT_FLAG | (1 << conversion.PAINT_ARG_OFFSET)), 0, 0, 0, 0, 0},
 			{0, 0, grid2dmap.Grid2DMapElement(conversion.BALL_FLAG | (4 << conversion.BALL_ARG_OFFSET)), 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0},
 			{grid2dmap.Grid2DMapElement(conversion.POSITION_FLAG), 0, 0, 0, 0, 0, 0},
@@ -26,7 +26,7 @@ func main() {
 			{0, 0, 0, 0, 0, 0, 0},
 			{0, 0, grid2dmap.Grid2DMapElement(conversion.BALL_FLAG | (8 << conversion.BALL_ARG_OFFSET)), 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0},
-			{grid2dmap.Grid2DMapElement(conversion.POSITION_FLAG) | grid2dmap.Grid2DMapElement(conversion.BALL_FLAG|(8<<conversion.BALL_ARG_OFFSET)), 0, 0, 0, 0, 0, 0},
+			{grid2dmap.Grid2DMapElement(conversion.POSITION_FLAG) | grid2dmap.Grid2DMapElement(conversion.BALL_FLAG|(8<<conversion.BALL_ARG_OFFSET)) | 2, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0},
 		},

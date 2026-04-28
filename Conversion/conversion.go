@@ -2,6 +2,7 @@ package conversion
 
 import (
 	"fmt"
+	"log"
 	"slices"
 	astarpathfinding "sumac-gen/AStarPathFinding"
 	grid2dmap "sumac-gen/Grid2DMap"
@@ -40,6 +41,7 @@ const (
 	NO_OBJECTIVE
 	DROP_BALL
 	EAT_BALL
+	PAINT_TILE
 	ROTATE
 )
 
@@ -71,6 +73,15 @@ func NewObjectiveGroupsFromSpecs(specs []ObjectiveSpec, underlying_map grid2dmap
 	return object_groups
 }
 
+func ColourIDToPaintColour(id int) string {
+	var colour_names = []string{"red", "blue", "green", "yellow", "cyan", "orange", "white", "black", "gray", "purple"}
+	if id >= len(colour_names) {
+		log.Println("Attempted to use invalid colour of ", id, " id")
+		return "white"
+	}
+	return colour_names[id]
+}
+
 type Objective struct {
 	Type     ObjectiveType
 	Argument int // if the objective is DROP_BALL for example, this would be the amount of balls to drop
@@ -93,6 +104,8 @@ func (group *ObjectiveGroup) GenerateCode() string {
 			code += fmt.Sprintf("eat_ball(%d);", objective.Argument)
 		case ROTATE:
 			code += fmt.Sprintf("rotate(%d);", objective.Argument)
+		case PAINT_TILE:
+			code += fmt.Sprintf("paint('%s');", ColourIDToPaintColour(objective.Argument))
 		case NO_OBJECTIVE:
 			// nothing C:
 		default:
@@ -457,10 +470,30 @@ func GetObjectiveSpecs(start, final grid2dmap.Grid2DMap) (core_map_geometry grid
 						Objective{Type: DROP_BALL, Argument: utils.AbsInt(amount_difference)},
 					)
 				}
+			case PAINT:
+				var selected_colour uint32 = interactable_2.Argument
+				objective_specs[i].Objectives = append(
+					objective_specs[i].Objectives,
+					Objective{Type: PAINT_TILE, Argument: int(selected_colour)},
+				)
 			}
 
 		}
 
+	}
+
+	var final_rotation int = int(
+		(final.Get(
+			final_map_info.Karel_position.X, final_map_info.Karel_position.Y,
+		)&
+			ROTATION_ARG_MASK)>>ROTATION_ARG_OFFSET) * 90
+	if final_rotation != 0 {
+		objective_specs[len(objective_specs)-1].Objectives = append(
+			objective_specs[len(objective_specs)-1].Objectives, Objective{
+				Type:     ROTATE,
+				Argument: final_rotation,
+			},
+		)
 	}
 
 	return core_map_geometry, objective_specs
