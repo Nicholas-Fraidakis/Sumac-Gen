@@ -17,9 +17,6 @@ Here is some things that need to be done before I am satified:
 - Usabilty:
     - Add CLI Support instead of hardcoding Karel maps
     - Add Semi-Graphical Support (use robotgo to capture Karel maps on screen and parse them into usable representation) then output code to file
-- Karel Functionally:
-    - Add end rotation support
-    - Add painting and other Karel actions
 - Code gen:
     - Optimization:
         - Add ability to collapse code into a for loop
